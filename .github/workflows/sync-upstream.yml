@@ -1,0 +1,36 @@
+name: 自动同步上游 MoonTVPlus
+
+on:
+  schedule:
+    # 每天国际标准时间 (UTC) 18:00 运行，对应北京时间凌晨 02:00
+    - cron: '0 18 * * *'
+  workflow_dispatch: # 允许你在 GitHub 页面上手动点击按钮立即同步
+
+jobs:
+  sync_latest_from_upstream:
+    runs-on: ubuntu-latest
+    name: 同步最新代码
+
+    steps:
+    # 1. 检出你自己的仓库
+    - name: Checkout target repo
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # 2. 运行同步组件
+    - name: Sync upstream changes
+      id: sync
+      uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
+      with:
+        upstream_repository: mtvpls/MoonTVPlus
+        upstream_branch: main
+        target_branch: main
+        target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+        test_mode: false # 如果有冲突，自动尝试合并
+
+    # 3. 打印同步状态
+    - name: Check for value changes
+      if: steps.sync.outputs.has_new_commits == 'true'
+      run: echo "同步成功，已合并 mtvpls 的最新修改！"
